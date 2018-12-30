@@ -109,9 +109,6 @@ void trainLayer(Layer *l){
 
 	    __m256d v4_temp = _mm256_set1_pd(temp);
 
-	    double aaa[784];
-   	  //  double* aaa;
-	   // aaa = (double*)malloc(784*sizeof(double));
 	    for (int j=0; j<NUMBER_OF_INPUT_CELLS; j=j+4){
 		__m256d v4_pixel = _mm256_set_pd(pixel[j+3], pixel[j+2], pixel[j+1], pixel[j+0]);
 		__m256d v4_input = _mm256_cmp_pd(v4_pixel, v4_zero, 4);
@@ -119,23 +116,9 @@ void trainLayer(Layer *l){
 		__m256d v4_mul = _mm256_mul_pd(v4_input, v4_temp);
 		__m256d v4_weight = _mm256_load_pd(weight+j);
 		v4_weight = _mm256_add_pd(v4_weight, v4_mul);
-		
 		_mm256_storeu_pd(l->cell[i].weight+j, v4_weight);
-		//_mm256_store_pd(aaa+j, v4_weight);
 
-	//	printf("%f, %d\n",weight[j+3], j );
 	    }
-
-	  /*  for (int j=0; j<784; j++){
-		weight[j]=aaa[j];	
-	    }*/
- /*
-    	    #pragma simd
-   	    for (int j=0; j<NUMBER_OF_INPUT_CELLS; j++){
-		if (pixel[j])
-        	weight[j] += temp;
-    	    }*/
-   
         }
  
         int predictedNum = getLayerPrediction(l);
