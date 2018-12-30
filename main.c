@@ -32,6 +32,7 @@
 #include "mnist-stats.h"
 #include "1lnn.h"
 #include <immintrin.h>
+//#include <smmintrin.h>
 
 
 
@@ -50,7 +51,6 @@ void trainLayer(Layer *l){
     imageFile = openMNISTImageFile(MNIST_TRAINING_SET_IMAGE_FILE_NAME);
     labelFile = openMNISTLabelFile(MNIST_TRAINING_SET_LABEL_FILE_NAME);
     
-    
     // screen output for monitoring progress
     //displayImageFrame(5,5);
 
@@ -64,30 +64,28 @@ void trainLayer(Layer *l){
         
         // display progress
         //displayLoadingProgressTraining(imgCount,3,5);
-        
         // Reading next image and corresponding label
         MNIST_Image img = getImage(imageFile);
         MNIST_Label lbl = getLabel(labelFile);
-        
         // set target ouput of the number displayed in the current image (=label) to 1, all others to 0
         Vector targetOutput;
         targetOutput = getTargetOutput(lbl);
-        
         //displayImage(&img, 6,6);
     
     	double maxOut = 0;
     	int maxInd = 0;
-     
         // loop through all output cells for the given image
 	#pragma omp parallel for
         for (int i=0; i < NUMBER_OF_OUTPUT_CELLS; i++){
 	     
     	    double c_output = 0;
+	    uint8_t* pixel=img.pixel; 
+	    double* weight = l->cell[i].weight;
     	    #pragma simd 
     	    for (int j=0; j<NUMBER_OF_INPUT_CELLS; j++){
-        	l->cell[i].input[j] = img.pixel[j] ? 1 : 0;
-		if (l->cell[i].input[j])
-        	c_output += l->cell[i].weight[j];
+        	//l->cell[i].input[j] = img.pixel[j] ? 1 : 0;
+		if (pixel[j])
+        	c_output += weight[j];
     	    }
     
     	    l->cell[i].output = c_output/ NUMBER_OF_INPUT_CELLS;             // normalize output (0-1)
@@ -97,13 +95,12 @@ void trainLayer(Layer *l){
     
     	    #pragma simd
    	    for (int j=0; j<NUMBER_OF_INPUT_CELLS; j++){
-		if (l->cell[i].input[j])
-        	l->cell[i].weight[j] += temp;
+		if (pixel[j])
+        	weight[j] += temp;
     	    }
         
         }
   
-       
         int predictedNum = getLayerPrediction(l);
         if (predictedNum!=lbl) errCount++;
           
@@ -169,12 +166,44 @@ void testLayer(Layer *l){
 	#pragma omp parallel for
         for (int i=0; i < NUMBER_OF_OUTPUT_CELLS; i++){
 	    double c_output_test=0;
-    	    #pragma simd 
-    	    for (int j=0; j<NUMBER_OF_INPUT_CELLS; j++){
-       	    	l->cell[i].input[j] = img.pixel[j] ? 1 : 0;
-		if (l->cell[i].input[j])
-        	    c_output_test += l->cell[i].weight[j];
+	    double* input = l->cell[i].input; 
+	    double* weight = l->cell[i].weight;
+	    uint8_t* pixel = img.pixel; 
+	    double result[4];
+    	   // #pragma simd
+ 	    __m256d v4_zero = _mm256_setzero_pd();
+	    __m256d v4_sum = _mm256_setzero_pd();
+	    __m256d v4_one = _mm256_set1_pd(1.0);
+	  //  __m256d v4_and_mask = _mm256_set1_pd(0x03ff0000000000000);
+
+	//	_mm256_store_pd(result, v4_and_mask);
+	//	printf("%f\n",result[1]);
+
+
+    	    for (int j=0; j<NUMBER_OF_INPUT_CELLS; j=j+4){
+       	    	//input[j] = pixel[j] ? 1 : 0;
+		__m256d v4_pixel = _mm256_set_pd(pixel[j], pixel[j+1], pixel[j+2], pixel[j+3]);
+		__m256d v4_input = _mm256_cmp_pd(v4_pixel, v4_zero, 4);
+		v4_input = _mm256_and_pd(v4_input, v4_one);
+	
+//		_mm256_store_pd(result, v4_input);
+//		printf("%f\n",result[1]);
+
+
+		__m256d v4_weight = _mm256_set_pd(weight[j], weight[j+1], weight[j+2], weight[j+3]);
+		__m256d v4_mul = _mm256_mul_pd(v4_weight, v4_input);
+		v4_sum = _mm256_add_pd(v4_mul, v4_sum); 
+        //	c_output_test += weight[j] * input[j];
     	    }
+	    _mm256_store_pd(result, v4_sum);
+	    c_output_test = result[0] + result[1]+result[2]+result[3];
+	
+	//    double temp = 0;
+	  //  for (int j=0; j<NUMBER_OF_INPUT_CELLS; j++){
+//		input[j] = pixel[j]?1:0;
+//		temp += weight[j]*input[j];
+//	    }	
+	    //printf("\ntemp= %f, simd_cout=%f", temp, c_output_test);	
 	    l->cell[i].output = c_output_test/NUMBER_OF_INPUT_CELLS;   
         }
         
