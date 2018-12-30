@@ -20,7 +20,6 @@
  *
  */
  
- 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,11 +31,6 @@
 #include "mnist-stats.h"
 #include "1lnn.h"
 #include <immintrin.h>
-//#include <smmintrin.h>
-
-
-
-
 
 
 /**
@@ -170,7 +164,7 @@ void testLayer(Layer *l){
     for (int imgCount=0; imgCount<MNIST_MAX_TESTING_IMAGES; imgCount++){
         
         // display progress
-        //displayLoadingProgressTesting(imgCount,5,5);
+        // displayLoadingProgressTesting(imgCount,5,5);
         
         // Reading next image and corresponding label
         MNIST_Image img = getImage(imageFile);
@@ -195,7 +189,6 @@ void testLayer(Layer *l){
 
 	    double result[4];
  	    for (int j=0; j<NUMBER_OF_INPUT_CELLS; j=j+4){
-       	    	//input[j] = pixel[j] ? 1 : 0;
 		__m256d v4_pixel = _mm256_set_pd(pixel[j+3], pixel[j+2], pixel[j+1], pixel[j]);
 		__m256d v4_input = _mm256_cmp_pd(v4_pixel, v4_zero, 4);
 		v4_input = _mm256_and_pd(v4_input, v4_one);
