@@ -137,32 +137,7 @@ void trainLayer(Layer *l){
     	    }*/
    
         }
-/*	#pragma omp parallel for
-        for (int i=0; i < NUMBER_OF_OUTPUT_CELLS; i++){
-	     
-    	    double c_output = 0;
-	    uint8_t* pixel=img.pixel; 
-	    double* weight = l->cell[i].weight;
-    	    #pragma simd 
-    	    for (int j=0; j<NUMBER_OF_INPUT_CELLS; j++){
-        	//l->cell[i].input[j] = img.pixel[j] ? 1 : 0;
-		if (pixel[j])
-        	c_output += weight[j];
-    	    }
-    
-    	    l->cell[i].output = c_output/ NUMBER_OF_INPUT_CELLS;             // normalize output (0-1)
  
-   	    double err = targetOutput.val[i] - l->cell[i].output;
-    	    double temp = err * LEARNING_RATE;
-    
-    	    #pragma simd
-   	    for (int j=0; j<NUMBER_OF_INPUT_CELLS; j++){
-		if (pixel[j])
-        	weight[j] += temp;
-    	    }
-        
-        }*/
-  
         int predictedNum = getLayerPrediction(l);
         if (predictedNum!=lbl) errCount++;
           
@@ -238,10 +213,11 @@ void testLayer(Layer *l){
 	    double result[4];
  	    for (int j=0; j<NUMBER_OF_INPUT_CELLS; j=j+4){
        	    	//input[j] = pixel[j] ? 1 : 0;
-		__m256d v4_pixel = _mm256_set_pd(pixel[j], pixel[j+1], pixel[j+2], pixel[j+3]);
+		__m256d v4_pixel = _mm256_set_pd(pixel[j+3], pixel[j+2], pixel[j+1], pixel[j]);
 		__m256d v4_input = _mm256_cmp_pd(v4_pixel, v4_zero, 4);
 		v4_input = _mm256_and_pd(v4_input, v4_one);
-		__m256d v4_weight = _mm256_set_pd(weight[j], weight[j+1], weight[j+2], weight[j+3]);
+		//__m256d v4_weight = _mm256_set_pd(weight[j], weight[j+1], weight[j+2], weight[j+3]);
+		__m256d v4_weight = _mm256_load_pd(weight+j);
 		__m256d v4_mul = _mm256_mul_pd(v4_weight, v4_input);
 		v4_sum = _mm256_add_pd(v4_mul, v4_sum); 
     	    }
