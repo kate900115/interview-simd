@@ -111,7 +111,6 @@ void trainLayer(Layer *l){
 		__m256d v4_weight = _mm256_load_pd(weight+j);
 		v4_weight = _mm256_add_pd(v4_weight, v4_mul);
 		_mm256_storeu_pd(l->cell[i].weight+j, v4_weight);
-
 	    }
         }
  
