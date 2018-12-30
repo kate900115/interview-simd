@@ -165,7 +165,6 @@ void testLayer(Layer *l){
         // loop through all output cells for the given image
 	#pragma omp parallel for
         for (int i=0; i < NUMBER_OF_OUTPUT_CELLS; i++){
-	    double c_output_test=0;
 	    double* input = l->cell[i].input; 
 	    double* weight = l->cell[i].weight;
 	    uint8_t* pixel = img.pixel; 
@@ -174,11 +173,6 @@ void testLayer(Layer *l){
  	    __m256d v4_zero = _mm256_setzero_pd();
 	    __m256d v4_sum = _mm256_setzero_pd();
 	    __m256d v4_one = _mm256_set1_pd(1.0);
-	  //  __m256d v4_and_mask = _mm256_set1_pd(0x03ff0000000000000);
-
-	//	_mm256_store_pd(result, v4_and_mask);
-	//	printf("%f\n",result[1]);
-
 
     	    for (int j=0; j<NUMBER_OF_INPUT_CELLS; j=j+4){
        	    	//input[j] = pixel[j] ? 1 : 0;
@@ -189,14 +183,13 @@ void testLayer(Layer *l){
 //		_mm256_store_pd(result, v4_input);
 //		printf("%f\n",result[1]);
 
-
 		__m256d v4_weight = _mm256_set_pd(weight[j], weight[j+1], weight[j+2], weight[j+3]);
 		__m256d v4_mul = _mm256_mul_pd(v4_weight, v4_input);
 		v4_sum = _mm256_add_pd(v4_mul, v4_sum); 
         //	c_output_test += weight[j] * input[j];
     	    }
 	    _mm256_store_pd(result, v4_sum);
-	    c_output_test = result[0] + result[1]+result[2]+result[3];
+	    double c_output_test = result[0] + result[1]+result[2]+result[3];
 	
 	//    double temp = 0;
 	  //  for (int j=0; j<NUMBER_OF_INPUT_CELLS; j++){
