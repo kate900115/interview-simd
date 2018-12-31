@@ -72,28 +72,26 @@ void trainLayer(Layer *l){
 
 	__m256d v4_zero = _mm256_setzero_pd();
 	__m256d v4_one = _mm256_set1_pd(1.0);
-
 	#pragma omp parallel for
         for (int i=0; i < NUMBER_OF_OUTPUT_CELLS; i++){
 	    double* input = l->cell[i].input; 
 	    double* weight = l->cell[i].weight;
 	    uint8_t* pixel = img.pixel;
  	    __m256d v4_sum = _mm256_setzero_pd();
-
 	    double result[4];
  	    for (int j=0; j<NUMBER_OF_INPUT_CELLS; j=j+4){
+
        	    	//input[j] = pixel[j] ? 1 : 0;
 		__m256d v4_pixel = _mm256_set_pd(pixel[j+3], pixel[j+2], pixel[j+1], pixel[j]);
 		__m256d v4_input = _mm256_cmp_pd(v4_pixel, v4_zero, 4);
 		v4_input = _mm256_and_pd(v4_input, v4_one);
-	
 //		_mm256_store_pd(result, v4_input);
 //		printf("%f\n",result[1]);
-		__m256d v4_weight = _mm256_load_pd(weight+j);
+		__m256d v4_weight = _mm256_loadu_pd(weight+j);
 		__m256d v4_mul = _mm256_mul_pd(v4_weight, v4_input);
 		v4_sum = _mm256_add_pd(v4_mul, v4_sum); 
     	    }
-	    _mm256_store_pd(result, v4_sum);
+	    _mm256_storeu_pd(result, v4_sum);
 	    double c_output_test = result[0] + result[1]+result[2]+result[3];
 	
 	    l->cell[i].output = c_output_test/NUMBER_OF_INPUT_CELLS;  
@@ -108,12 +106,11 @@ void trainLayer(Layer *l){
 		__m256d v4_input = _mm256_cmp_pd(v4_pixel, v4_zero, 4);
 		v4_input = _mm256_and_pd(v4_input, v4_one);
 		__m256d v4_mul = _mm256_mul_pd(v4_input, v4_temp);
-		__m256d v4_weight = _mm256_load_pd(weight+j);
+		__m256d v4_weight = _mm256_loadu_pd(weight+j);
 		v4_weight = _mm256_add_pd(v4_weight, v4_mul);
 		_mm256_storeu_pd(l->cell[i].weight+j, v4_weight);
 	    }
         }
- 
         int predictedNum = getLayerPrediction(l);
         if (predictedNum!=lbl) errCount++;
           
@@ -191,11 +188,11 @@ void testLayer(Layer *l){
 		__m256d v4_pixel = _mm256_set_pd(pixel[j+3], pixel[j+2], pixel[j+1], pixel[j]);
 		__m256d v4_input = _mm256_cmp_pd(v4_pixel, v4_zero, 4);
 		v4_input = _mm256_and_pd(v4_input, v4_one);
-		__m256d v4_weight = _mm256_load_pd(weight+j);
+		__m256d v4_weight = _mm256_loadu_pd(weight+j);
 		__m256d v4_mul = _mm256_mul_pd(v4_weight, v4_input);
 		v4_sum = _mm256_add_pd(v4_mul, v4_sum); 
     	    }
-	    _mm256_store_pd(result, v4_sum);
+	    _mm256_storeu_pd(result, v4_sum);
 	    double c_output_test = result[0] + result[1]+result[2]+result[3];
 	
 	    l->cell[i].output = c_output_test/NUMBER_OF_INPUT_CELLS;   
